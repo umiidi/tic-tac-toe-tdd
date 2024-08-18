@@ -14,7 +14,6 @@ public class TicTacToeRepo {
     }
 
     List<TicTacToe> getBoardState() {
-        System.out.println("esl repo");
         return new LinkedList<>(boardState); // immutable
     }
 

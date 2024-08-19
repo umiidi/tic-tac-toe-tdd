@@ -2,11 +2,11 @@ package az.ingress;
 
 public class TicTacToeGame {
 
-    private final Character[][] board = {
-            {'\0', '\0', '\0', '\0'},
-            {'\0', '\0', '\0', '\0'},
-            {'\0', '\0', '\0', '\0'}
-    };
+    private final TicTacToeRepo ticTacToeRepo;
+
+    public TicTacToeGame(TicTacToeRepo ticTacToeRepo) {
+        this.ticTacToeRepo = ticTacToeRepo;
+    }
 
     private Character lastPlayer = '\0';
 
@@ -15,26 +15,30 @@ public class TicTacToeGame {
         checkYAxis(y);
         lastPlayer = nextPlayer();
         setBox(x, y);
-        if (isWin()) {
+        Character[][] board = loadBoard();
+        if (isWin(board)) {
             return String.format("%s is the winner", lastPlayer);
-        } else if (isDraw()) {
+        } else if (isDraw(board)) {
             return "The result is draw";
         }
         return "No winner";
     }
 
     public char nextPlayer() {
-        if (lastPlayer == 'X') {
-            return 'O';
+        TicTacToe lastMove = ticTacToeRepo.getLastMove();
+        if (lastMove == null) {
+            return 'X';
         }
-        return 'X';
+        return lastMove.getPlayer() == 'X' ? 'O' : 'X';
     }
 
     private void setBox(int x, int y) {
+        Character[][] board = loadBoard();
+
         if (board[x - 1][y - 1] != '\0') {
             throw new RuntimeException("Box is occupied");
         }
-        board[x - 1][y - 1] = lastPlayer;
+        ticTacToeRepo.saveMove(new TicTacToe(x, y, lastPlayer));
     }
 
     private void checkXAxis(int x) {
@@ -49,12 +53,12 @@ public class TicTacToeGame {
         }
     }
 
-    private boolean isWin() {
+    private boolean isWin(Character[][] board) {
         int playerTotal = lastPlayer * 3;
-        return checkDiagonals(playerTotal) || checkHorizontalAndVerticalWin(playerTotal);
+        return checkDiagonals(board, playerTotal) || checkHorizontalAndVerticalWin(board, playerTotal);
     }
 
-    private boolean isDraw() {
+    private boolean isDraw(Character[][] board) {
         for (int x = 0; x < 3; x++) {
             for (int y = 0; y < 3; y++) {
                 if (board[x][y] == '\0') {
@@ -65,7 +69,7 @@ public class TicTacToeGame {
         return true;
     }
 
-    private boolean checkHorizontalAndVerticalWin(int playerTotal) {
+    private boolean checkHorizontalAndVerticalWin(Character[][] board, int playerTotal) {
         for (int i = 0; i < 3; i++) {
             int horizontal = board[0][i] + board[1][i] + board[2][i];
             int vertical = board[i][0] + board[i][1] + board[i][2];
@@ -76,10 +80,25 @@ public class TicTacToeGame {
         return false;
     }
 
-    private boolean checkDiagonals(int playerTotal) {
+    private boolean checkDiagonals(Character[][] board, int playerTotal) {
         int mainDiagonal = board[0][0] + board[1][1] + board[2][2];
         int antiDiagonal = board[0][2] + board[2][2] + board[2][1];
         return mainDiagonal == playerTotal || antiDiagonal == playerTotal;
+    }
+
+    private Character[][] loadBoard() {
+        Character[][] board = getEmptyBoard();
+        ticTacToeRepo.getBoardState()
+                .forEach(state -> board[state.getX() - 1][state.getY() - 1] = state.getPlayer());
+        return board;
+    }
+
+    private Character[][] getEmptyBoard() {
+        return new Character[][]{
+                {'\0', '\0', '\0'},
+                {'\0', '\0', '\0'},
+                {'\0', '\0', '\0'}
+        };
     }
 
 }
